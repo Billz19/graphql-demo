@@ -1,4 +1,6 @@
 import { NextFunction } from "express";
+import { unlink } from "fs";
+import { join } from "path";
 
 
 export const handleErrors = (next: NextFunction, error: any) => {
@@ -15,4 +17,9 @@ export const prepareError = (message: string, statusCode: number, data?:any): Er
       (error as any).data = data;  
     }
     return error
+}
+
+
+export const clearImage = (imagePath: string) => {
+    unlink(join(__dirname, '..', '..', imagePath), (error => console.log('clearImage', error)))
 }

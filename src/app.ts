@@ -1,11 +1,14 @@
 import express, { Request, NextFunction, Response } from "express";
-import feedRouter from "./routes/feed";
-import authRouter from "./routes/auth";
 import bodyParser from "body-parser"
 import { connect } from 'mongoose'
 import { join } from "path";
 import multer from "multer";
-import {socket} from "./socket"
+import {graphqlHTTP} from "express-graphql"
+import graphqlSchema from "./graphql/schema";
+import * as graphqlResolvers from "./graphql/resolvers"
+import errorHandler from "./graphql/errorHandler";
+import Auth from "./middlewares/graphql-auth";
+import postImage from "./middlewares/post-image";
 
 const app = express();
 
@@ -39,13 +42,20 @@ app.use((req: Request, resp: Response, next: NextFunction) => {
     resp.setHeader('Access-Control-Allow-Origin', '*');
     resp.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
     resp.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if(req.method === 'OPTIONS'){
+        return resp.sendStatus(200);
+    }
     next();
 })
 
-app.use('/feed', feedRouter)
-
-app.use('/auth', authRouter)
-
+app.use(Auth)
+app.put('/post-image',postImage)
+app.use('/graphql',graphqlHTTP({
+    schema:graphqlSchema,
+    rootValue: graphqlResolvers,
+    graphiql: true,
+    formatError: errorHandler 
+}))
 app.use((error: Error, req: Request, resp: Response, next: NextFunction) => {
     console.log(error);
     const { message, statusCode, data } = error as any;
@@ -56,9 +66,5 @@ connect('mongodb://localhost:27017/messages', {
     useUnifiedTopology: true
 }).then(() => {
     console.log('Connected');
-   const server = app.listen(4040);
-   const io = socket.init(server);
-   io.on('connection',(socket:any)=>{
-    console.log('Client connected')
-   })
-}).catch(error => console.log(error))
+ app.listen(4040);
+}).catch((error:Error) => console.log(error))

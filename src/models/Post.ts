@@ -7,7 +7,9 @@ export interface PostDocument extends Document {
     creator?: {
         _id: string;
         name: string
-    } | string
+    } | string,
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 const postSchema = new Schema({
